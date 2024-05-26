@@ -131,7 +131,7 @@ backupVirtManager() {
   # Directory path where the backup will be stored
   local backupDir="/media/local/Backup--timeshift"
   # Arguments for the rsync command
-  local rsyncArgs=(-rltv --human-readable --progress --stats --delete --exclude='lost+found')
+  local rsyncArgs=(-rltv --human-readable --progress --stats --delete --exclude='lost+found' --exclude='/timeshift')
 
   if [ "$TEST_MODE" = true ]; then
     # Directory path of the virt-manager directory in test mode
@@ -144,7 +144,7 @@ backupVirtManager() {
   fi
 
   # Perform the backup using rsync command
-  rsync "${rsyncArgs[@]}" "$virtManagerDir/" "$backupDir/"
+  rsync "${rsyncArgs[@]}" "$virtManagerDir" "$backupDir"
 
   printMessage "Backup of virt-manager completed successfully."
 }
