@@ -165,7 +165,7 @@ backupServers() {
   local serverName="$1"
   local fullServerName="supertux@${serverName}.lgdweb.ovh:"
   local backupBaseDir="/media/local/Backup--timeshift/remote/${serverName}"
-  local rsyncArgs=(-rltv --human-readable --progress --stats --delete --exclude='/lost+found' --exclude '/**/system@*' --exclude '/**/letsencrypt' --exclude '/**/dummykey.pem')
+  local rsyncArgs=(-rltv --human-readable --progress --stats --delete --exclude='/lost+found' --exclude='/**/*.cache/' --exclude='/**/system@*' --exclude='/**/letsencrypt' --exclude='/**/dummykey.pem')
 
   if [ "$TEST_MODE" = true ]; then
     fullServerName="$BASE_DIR/$serverName"
@@ -202,8 +202,7 @@ backupServers() {
 syncBackups() {
   local localBackupDir="/media/local/Backup--timeshift"
   local remoteHomelabBackupDir="supertux@homelab.local:/media/local/backup"
-  local rsyncArgs=(-rltv --human-readable --progress --stats --delete --exclude='lost+found' --exclude '/timeshift')
-  #  local rsyncArgs=(-rltv --dry-run --human-readable --progress --stats --delete --exclude='lost+found' --exclude '/timeshift')
+  local rsyncArgs=(-rltv --human-readable --progress --stats --delete --exclude='lost+found' --exclude='/timeshift')
 
   if [ "$TEST_MODE" = true ]; then
     localBackupDir="$BASE_DIR/media/local/Backup--timeshift"
