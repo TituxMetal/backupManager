@@ -119,6 +119,8 @@ backupAllDataZ() {
     printMessage "Dest in test mode check: $remoteHomelabAllDataZ"
   fi
 
+  printMessage "Starting backup of AllDataZ..."
+
   rsync "${rsyncArgs[@]}" "$localAllDataZ/" "$remoteHomelabAllDataZ/"
 
   printMessage "Backup of AllDataZ completed successfully."
@@ -143,7 +145,8 @@ backupVirtManager() {
     printMessage "Dest in test mode check: $backupDir"
   fi
 
-  # Perform the backup using rsync command
+  printMessage "Starting backup of virt-manager..."
+
   rsync "${rsyncArgs[@]}" "$virtManagerDir" "$backupDir"
 
   printMessage "Backup of virt-manager completed successfully."
@@ -187,6 +190,8 @@ backupServers() {
       printMessage "Dest in for loop: $backupBaseDir$dir/"
     fi
 
+    printMessage "Starting backup of $dir from $serverName..."
+
     rsync -e "ssh" "${rsyncArgs[@]}" --rsync-path="sudo rsync" "$fullServerName$dir/" "$backupBaseDir$dir/" \
     && printMessage "Backup of $dir from $serverName completed successfully." \
     || printMessage "Failed to backup $dir from $serverName."
@@ -207,6 +212,8 @@ syncBackups() {
     printMessage "Source in test mode check: $localBackupDir"
     printMessage "Dest in test mode check: $remoteHomelabBackupDir"
   fi
+
+  printMessage "Starting sync of local backups with homelab..."
 
   rsync "${rsyncArgs[@]}" "$localBackupDir/" "$remoteHomelabBackupDir/"
 
