@@ -11,7 +11,7 @@
 # Global variables
 TEST_MODE=false
 BASE_DIR=./testEnv
-SERVERS=(andrew bart lisa laura mary homelab)
+SERVERS=(andrew laura mary homelab)
 
 # Function to print a message with formatting
 # Usage: printMessage <message>
@@ -165,7 +165,7 @@ backupServers() {
   local serverName="$1"
   local fullServerName="supertux@${serverName}.lgdweb.ovh:"
   local backupBaseDir="/media/local/Backup--timeshift/remote/${serverName}"
-  local rsyncArgs=(-rltv --human-readable --progress --stats --delete --exclude='/lost+found' --exclude='/**/*.cache/' --exclude='/**/system@*' --exclude='/**/letsencrypt' --exclude='/**/dummykey.pem')
+  local rsyncArgs=(-rltv --human-readable --progress --stats --delete --exclude='/lost+found' --exclude='/**/*.cache/' --exclude='/**/system@*' --exclude='/*_event-data/' --exclude='/**/letsencrypt' --exclude='/**/dummykey.pem')
 
   if [ "$TEST_MODE" = true ]; then
     fullServerName="$BASE_DIR/$serverName"
@@ -222,7 +222,7 @@ syncBackups() {
 # Function: selectBackupTask
 # Description: Displays a menu of backup tasks and performs the selected task based on user input.
 selectBackupTask() {
-  local servers=("andrew" "bart" "lisa" "laura" "mary" "homelab")
+  local servers=("andrew" "laura" "mary" "homelab")
 
   echo "1. Backup local AllDataZ to homelab"
   echo "2. Backup virt-manager"
