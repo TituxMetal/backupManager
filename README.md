@@ -22,14 +22,14 @@ backup tasks. It also includes a test mode to simulate the backup process with s
 
 ## Installation
 
-1. Clone the repository:
+### Clone the repository
 
 ```bash
 git clone https://github.com/TituxMetal/backupManager.git
 cd backupManager
 ```
 
-2. Make the script executable:
+### Make the script executable
 
 ```bash
 chmod +x backupManager.sh
@@ -74,8 +74,6 @@ Select the appropriate option by entering the corresponding number.
 The script is configured to backup data from the following servers:
 
 - **`andrew`**
-- **`bart`**
-- **`lisa`**
 - **`laura`**
 - **`mary`**
 - **`homelab`**
