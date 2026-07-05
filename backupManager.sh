@@ -4,8 +4,8 @@
 # Description: Manage backups for various local and remote resources.
 # Author: Titux Metal <tituxmetal[at]lgdweb[dot]fr>
 # Url: https://github.com/TituxMetal/backupManager
-# Version: 1.0
-# Revision: 2024.05.26
+# Version: 1.1
+# Revision: 2026.07.05
 # License: MIT License
 
 # Global variables
@@ -95,11 +95,12 @@ setupTestEnvironment() {
   # Create source test direcory for backupVirtManager
   createDir "$BASE_DIR/home/titux/virt-manager"
   # Create destination test directory for backupVirtManager
-  createDir "$BASE_DIR/media/local/Backup--timeshift/virt-manager"
-  
+  createDir "$BASE_DIR/media/local/Backup--virt-manager"
+
   populateDir "/virt-manager" "$BASE_DIR/home/titux/virt-manager/sample.txt"
-  # Create destination test directory for syncBackups
+  # Create destination test directories for syncBackups (servers + virt-manager)
   createDir "$BASE_DIR/homelab/media/local/backup"
+  createDir "$BASE_DIR/homelab/media/local/backup-virt-manager"
 
 
   printMessage "Test environment setup completed."
@@ -127,19 +128,21 @@ backupAllDataZ() {
 }
 
 # Function to backup the virt-manager directory using rsync.
+# The destination is a dedicated backup slice (VG backupVirt, owned by titux, no sudo needed).
+# --sparse is mandatory: .qcow2 images are sparse files, without it rsync fills the holes.
 backupVirtManager() {
   # Directory path of the virt-manager directory
   local virtManagerDir="/home/titux/virt-manager"
   # Directory path where the backup will be stored
-  local backupDir="/media/local/Backup--timeshift"
+  local backupDir="/media/local/Backup--virt-manager"
   # Arguments for the rsync command
-  local rsyncArgs=(-rltv --human-readable --progress --stats --delete --exclude='lost+found' --exclude='/timeshift')
+  local rsyncArgs=(-rltv --sparse --human-readable --progress --stats --delete --exclude='lost+found')
 
   if [ "$TEST_MODE" = true ]; then
     # Directory path of the virt-manager directory in test mode
     virtManagerDir="$BASE_DIR/home/titux/virt-manager"
     # Directory path where the backup will be stored in test mode
-    backupDir="$BASE_DIR/media/local/Backup--timeshift/virt-manager"
+    backupDir="$BASE_DIR/media/local/Backup--virt-manager"
 
     printMessage "Source in test mode check: $virtManagerDir"
     printMessage "Dest in test mode check: $backupDir"
@@ -147,7 +150,7 @@ backupVirtManager() {
 
   printMessage "Starting backup of virt-manager..."
 
-  rsync "${rsyncArgs[@]}" "$virtManagerDir" "$backupDir"
+  rsync "${rsyncArgs[@]}" "$virtManagerDir/" "$backupDir/"
 
   printMessage "Backup of virt-manager completed successfully."
 }
@@ -198,25 +201,55 @@ backupServers() {
   done
 }
 
-# Function to synchronize backups from a local directory to a remote directory.
-syncBackups() {
-  local localBackupDir="/media/local/Backup--timeshift"
-  local remoteHomelabBackupDir="supertux@homelab.local:/media/local/backup"
-  local rsyncArgs=(-rltv --human-readable --progress --stats --delete --exclude='lost+found' --exclude='/timeshift')
+# Function to synchronize the servers mirror (remote/) with the homelab.
+# Local source stays on the timeshift backup slice; destination is owned by supertux
+# on the homelab (no sudo on either side).
+syncServersBackups() {
+  local localRemoteDir="/media/local/Backup--timeshift/remote"
+  local homelabBackupDir="supertux@homelab.local:/media/local/backup/remote"
+  local rsyncArgs=(-rltv --human-readable --progress --stats --delete --exclude='lost+found')
 
   if [ "$TEST_MODE" = true ]; then
-    localBackupDir="$BASE_DIR/media/local/Backup--timeshift"
-    remoteHomelabBackupDir="$BASE_DIR/homelab/media/local/backup"
+    localRemoteDir="$BASE_DIR/media/local/Backup--timeshift/remote"
+    homelabBackupDir="$BASE_DIR/homelab/media/local/backup/remote"
 
-    printMessage "Source in test mode check: $localBackupDir"
-    printMessage "Dest in test mode check: $remoteHomelabBackupDir"
+    printMessage "Source in test mode check: $localRemoteDir"
+    printMessage "Dest in test mode check: $homelabBackupDir"
   fi
 
-  printMessage "Starting sync of local backups with homelab..."
+  printMessage "Starting sync of servers backups with homelab..."
 
-  rsync "${rsyncArgs[@]}" "$localBackupDir/" "$remoteHomelabBackupDir/"
+  rsync "${rsyncArgs[@]}" "$localRemoteDir/" "$homelabBackupDir/"
 
-  printMessage "Sync of local backups with homelab completed successfully."
+  printMessage "Sync of servers backups with homelab completed successfully."
+}
+
+# Function to synchronize the virt-manager mirror with the homelab.
+# --sparse is mandatory: .qcow2 images are sparse files, without it rsync fills the holes.
+syncVirtManagerBackup() {
+  local localVirtBackupDir="/media/local/Backup--virt-manager"
+  local homelabVirtBackupDir="supertux@homelab.local:/media/local/backup-virt-manager"
+  local rsyncArgs=(-rltv --sparse --human-readable --progress --stats --delete --exclude='lost+found')
+
+  if [ "$TEST_MODE" = true ]; then
+    localVirtBackupDir="$BASE_DIR/media/local/Backup--virt-manager"
+    homelabVirtBackupDir="$BASE_DIR/homelab/media/local/backup-virt-manager"
+
+    printMessage "Source in test mode check: $localVirtBackupDir"
+    printMessage "Dest in test mode check: $homelabVirtBackupDir"
+  fi
+
+  printMessage "Starting sync of virt-manager backup with homelab..."
+
+  rsync "${rsyncArgs[@]}" "$localVirtBackupDir/" "$homelabVirtBackupDir/"
+
+  printMessage "Sync of virt-manager backup with homelab completed successfully."
+}
+
+# Function to synchronize all local backups with the homelab (servers + virt-manager).
+syncBackups() {
+  syncServersBackups
+  syncVirtManagerBackup
 }
 
 # Function: selectBackupTask
@@ -261,7 +294,11 @@ selectBackupTask() {
 }
 
 main() {
+  # -E (errtrace): without it the ERR trap never fires inside functions,
+  # so a failed rsync would still print "completed successfully"
+  set -E
   trap 'handleError' ERR
+  trap 'printMessage "Interrupted by user"; exit 130' INT
 
   if [ "$1" == "--test" ]; then
     printMessage "Test mode enabled"
