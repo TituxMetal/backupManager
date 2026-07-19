@@ -80,7 +80,7 @@ setupTestEnvironment() {
       # Create source test directories for backupServers
       createDir "$BASE_DIR/$server/$dir"
       # Create destination test directories for backupServers
-      createDir "$BASE_DIR/media/local/Backup--timeshift/remote/$server/$dir"
+      createDir "$BASE_DIR/media/local/backup-vg--bkServers/remote/$server/$dir"
       populateDir "/$server" "$BASE_DIR/$server/$dir/sample.txt"
     done
 
@@ -95,7 +95,7 @@ setupTestEnvironment() {
   # Create source test direcory for backupVirtManager
   createDir "$BASE_DIR/home/titux/virt-manager"
   # Create destination test directory for backupVirtManager
-  createDir "$BASE_DIR/media/local/Backup--virt-manager"
+  createDir "$BASE_DIR/media/local/backup-vg--bkVirtpool"
 
   populateDir "/virt-manager" "$BASE_DIR/home/titux/virt-manager/sample.txt"
   # Create destination test directories for syncBackups (servers + virt-manager)
@@ -128,13 +128,13 @@ backupAllDataZ() {
 }
 
 # Function to backup the virt-manager directory using rsync.
-# The destination is a dedicated backup slice (VG backupVirt, owned by titux, no sudo needed).
+# The destination is a dedicated backup slice (VG backup-vg, owned by titux, no sudo needed).
 # --sparse is mandatory: .qcow2 images are sparse files, without it rsync fills the holes.
 backupVirtManager() {
   # Directory path of the virt-manager directory
   local virtManagerDir="/home/titux/virt-manager"
   # Directory path where the backup will be stored
-  local backupDir="/media/local/Backup--virt-manager"
+  local backupDir="/media/local/backup-vg--bkVirtpool"
   # Arguments for the rsync command
   local rsyncArgs=(-rltv --sparse --human-readable --progress --stats --delete --exclude='lost+found')
 
@@ -142,7 +142,7 @@ backupVirtManager() {
     # Directory path of the virt-manager directory in test mode
     virtManagerDir="$BASE_DIR/home/titux/virt-manager"
     # Directory path where the backup will be stored in test mode
-    backupDir="$BASE_DIR/media/local/Backup--virt-manager"
+    backupDir="$BASE_DIR/media/local/backup-vg--bkVirtpool"
 
     printMessage "Source in test mode check: $virtManagerDir"
     printMessage "Dest in test mode check: $backupDir"
@@ -167,12 +167,12 @@ backupVirtManager() {
 backupServers() {
   local serverName="$1"
   local fullServerName="supertux@${serverName}.lgdweb.ovh:"
-  local backupBaseDir="/media/local/Backup--timeshift/remote/${serverName}"
+  local backupBaseDir="/media/local/backup-vg--bkServers/remote/${serverName}"
   local rsyncArgs=(-rltv --human-readable --progress --stats --delete --exclude='/lost+found' --exclude='/**/*.cache/' --exclude='/**/system@*' --exclude='/*_event-data/' --exclude='/**/letsencrypt' --exclude='/**/dummykey.pem')
 
   if [ "$TEST_MODE" = true ]; then
     fullServerName="$BASE_DIR/$serverName"
-    backupBaseDir="$BASE_DIR/media/local/Backup--timeshift/remote/${serverName}"
+    backupBaseDir="$BASE_DIR/media/local/backup-vg--bkServers/remote/${serverName}"
 
     printMessage "Source in test mode check: $fullServerName"
     printMessage "Dest in test mode check: $backupBaseDir"
@@ -202,15 +202,15 @@ backupServers() {
 }
 
 # Function to synchronize the servers mirror (remote/) with the homelab.
-# Local source stays on the timeshift backup slice; destination is owned by supertux
+# Local source stays on the bkServers slice; destination is owned by supertux
 # on the homelab (no sudo on either side).
 syncServersBackups() {
-  local localRemoteDir="/media/local/Backup--timeshift/remote"
+  local localRemoteDir="/media/local/backup-vg--bkServers/remote"
   local homelabBackupDir="supertux@homelab.local:/media/local/backup/remote"
   local rsyncArgs=(-rltv --human-readable --progress --stats --delete --exclude='lost+found')
 
   if [ "$TEST_MODE" = true ]; then
-    localRemoteDir="$BASE_DIR/media/local/Backup--timeshift/remote"
+    localRemoteDir="$BASE_DIR/media/local/backup-vg--bkServers/remote"
     homelabBackupDir="$BASE_DIR/homelab/media/local/backup/remote"
 
     printMessage "Source in test mode check: $localRemoteDir"
@@ -227,12 +227,12 @@ syncServersBackups() {
 # Function to synchronize the virt-manager mirror with the homelab.
 # --sparse is mandatory: .qcow2 images are sparse files, without it rsync fills the holes.
 syncVirtManagerBackup() {
-  local localVirtBackupDir="/media/local/Backup--virt-manager"
+  local localVirtBackupDir="/media/local/backup-vg--bkVirtpool"
   local homelabVirtBackupDir="supertux@homelab.local:/media/local/backup-virt-manager"
   local rsyncArgs=(-rltv --sparse --human-readable --progress --stats --delete --exclude='lost+found')
 
   if [ "$TEST_MODE" = true ]; then
-    localVirtBackupDir="$BASE_DIR/media/local/Backup--virt-manager"
+    localVirtBackupDir="$BASE_DIR/media/local/backup-vg--bkVirtpool"
     homelabVirtBackupDir="$BASE_DIR/homelab/media/local/backup-virt-manager"
 
     printMessage "Source in test mode check: $localVirtBackupDir"
